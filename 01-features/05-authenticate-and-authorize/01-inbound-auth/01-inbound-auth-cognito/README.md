@@ -101,13 +101,16 @@ cd 01-inbound-auth/01-inbound-auth-cognito/
 python3 -m venv .venv
 source .venv/bin/activate
 
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 ## Running the Script
 
 The script runs end-to-end: sets up Cognito, deploys the runtime, tests with and without auth,
 then prints the state file location for reference.
+
+Run this from this directory. The entrypoint here is `inbound_auth_runtime.py` (not
+`runtime_memory_federated_identity_integration.py`, which belongs to a different sample).
 
 ```bash
 python inbound_auth_runtime.py
@@ -177,6 +180,56 @@ To clean up: python inbound_auth_runtime.py --cleanup
 ```
 
 ## Troubleshooting
+
+### SSL certificate verify failed calling IAM
+**Issue**: `CERTIFICATE_VERIFY_FAILED` with `self-signed certificate in certificate chain`.
+**Cause**: HTTPS interception/proxy (for example Netskope) is presenting a certificate chain that
+is not fully trusted by your Python CA bundle.
+**Solution**: Export your corporate CA chain and point boto3 to a combined bundle.
+
+```bash
+# From this sample directory and with .venv activated
+
+# 1) Inspect who is issuing the AWS certificate in your network
+echo | openssl s_client -connect iam.amazonaws.com:443 -servername iam.amazonaws.com 2>/dev/null | openssl x509 -noout -issuer -subject
+
+# 2) Export corporate CA certs (example: Netskope)
+security find-certificate -a -c "ca.tmx.goskope.com" -p /Library/Keychains/System.keychain > /tmp/ca.tmx.goskope.com.pem
+security find-certificate -a -c "caadmin.netskope.com" -p > /tmp/caadmin.netskope.com.pem
+
+# 3) Build a combined CA bundle: certifi + corporate certs
+python - <<'PY'
+import certifi, pathlib
+out = pathlib.Path('/tmp/aws-ca-bundle.pem')
+out.write_text(
+  pathlib.Path(certifi.where()).read_text()
+  + '\n'
+  + pathlib.Path('/tmp/ca.tmx.goskope.com.pem').read_text()
+  + '\n'
+  + pathlib.Path('/tmp/caadmin.netskope.com.pem').read_text()
+)
+print(out)
+PY
+
+# 4) Use it for AWS SDK calls
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle.pem
+python inbound_auth_runtime.py
+```
+
+Optional: make this persistent for new terminal sessions:
+
+```bash
+cat >> ~/.zshrc <<'EOF'
+# AgentCore samples: trust local AWS CA bundle when present
+if [ -f /tmp/aws-ca-bundle.pem ]; then
+  export AWS_CA_BUNDLE=/tmp/aws-ca-bundle.pem
+fi
+EOF
+source ~/.zshrc
+```
+
+If your issuer is different, replace certificate names with your organization's root/intermediate
+CA names.
 
 ### AccessDeniedException even with bearer token
 **Issue**: Token is valid but the runtime rejects it.

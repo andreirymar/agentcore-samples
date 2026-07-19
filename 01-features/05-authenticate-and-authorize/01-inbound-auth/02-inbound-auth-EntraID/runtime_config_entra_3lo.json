@@ -1,0 +1,10 @@
+{
+  "agent_name": "entra_3lo_onenote_17399",
+  "runtime_id": "entra_3lo_onenote_17399-wwPDmhD5NA",
+  "runtime_arn": "arn:aws:bedrock-agentcore:ca-central-1:323225952044:runtime/entra_3lo_onenote_17399-wwPDmhD5NA",
+  "endpoint_url": "https://bedrock-agentcore.ca-central-1.amazonaws.com/runtimes/arn%3Aaws%3Abedrock-agentcore%3Aca-central-1%3A323225952044%3Aruntime%2Fentra_3lo_onenote_17399-wwPDmhD5NA/invocations?qualifier=DEFAULT",
+  "region": "ca-central-1",
+  "role_arn": "arn:aws:iam::323225952044:role/agentcore-entra-3lo-323225952044-role",
+  "s3_bucket": "agentcore-entra-3lo-323225952044-ca-central-1",
+  "provider_name": "microsoft_entra_oauth_provider"
+}

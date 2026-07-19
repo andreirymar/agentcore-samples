@@ -212,7 +212,64 @@ class OAuth2CallbackServer:
 
             # Complete the OAuth flow by calling AgentCore Identity service
             # This associates the OAuth session with the user and retrieves access tokens
-            self.identity_client.complete_resource_token_auth(session_uri=session_id, user_identifier=user_identifier)
+            try:
+                self.identity_client.complete_resource_token_auth(
+                    session_uri=session_id,
+                    user_identifier=user_identifier,
+                )
+            except Exception as e:
+                logger.exception("Failed to complete OAuth2 callback")
+                html_content = f"""
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>OAuth2 Callback Error</title>
+                    <style>
+                        body {{
+                            margin: 0;
+                            padding: 0;
+                            height: 100vh;
+                            display: flex;
+                            justify-content: center;
+                            align-items: center;
+                            font-family: Arial, sans-serif;
+                            background-color: #f5f5f5;
+                        }}
+                        .container {{
+                            text-align: center;
+                            padding: 2rem;
+                            background-color: white;
+                            border-radius: 8px;
+                            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                            max-width: 700px;
+                        }}
+                        h1 {{
+                            color: #b42318;
+                            margin: 0 0 0.75rem 0;
+                        }}
+                        p {{
+                            color: #344054;
+                            margin: 0.5rem 0;
+                            line-height: 1.5;
+                        }}
+                        code {{
+                            background: #f2f4f7;
+                            padding: 0.15rem 0.35rem;
+                            border-radius: 4px;
+                        }}
+                    </style>
+                </head>
+                <body>
+                    <div class="container">
+                        <h1>OAuth2 callback failed</h1>
+                        <p>The callback server could not complete this OAuth session.</p>
+                        <p>Check the terminal running <code>oauth2_callback_server.py</code> for details.</p>
+                        <p>Error: <code>{str(e)}</code></p>
+                    </div>
+                </body>
+                </html>
+                """
+                return HTMLResponse(content=html_content, status_code=500)
 
             html_content = """
             <!DOCTYPE html>

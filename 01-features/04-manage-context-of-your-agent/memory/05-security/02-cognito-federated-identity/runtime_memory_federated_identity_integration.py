@@ -68,7 +68,7 @@ from utils import setup_cognito_user_pool, create_agentcore_role
 # Configuration
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("runtime-memory-agent")
-REGION = os.getenv("AWS_REGION", "us-west-2")
+REGION = os.getenv("AWS_REGION") or boto3.Session().region_name or "us-west-2"
 
 
 # ## 1. Creating Memory Resource
@@ -233,6 +233,7 @@ subprocess.run(
         "uv",
         "pip",
         "install",
+        "--system-certs",
         "--python-platform",
         "aarch64-manylinux2014",
         "--python-version",

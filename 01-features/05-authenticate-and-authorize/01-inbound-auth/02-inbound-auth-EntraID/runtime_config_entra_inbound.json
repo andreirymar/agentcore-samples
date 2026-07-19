@@ -1,0 +1,12 @@
+{
+  "agent_name": "entra_inbound_auth_8088",
+  "runtime_id": "entra_inbound_auth_8088-bPKQbwFXoh",
+  "runtime_arn": "arn:aws:bedrock-agentcore:ca-central-1:323225952044:runtime/entra_inbound_auth_8088-bPKQbwFXoh",
+  "endpoint_url": "https://bedrock-agentcore.ca-central-1.amazonaws.com/runtimes/arn%3Aaws%3Abedrock-agentcore%3Aca-central-1%3A323225952044%3Aruntime%2Fentra_inbound_auth_8088-bPKQbwFXoh/invocations?qualifier=DEFAULT",
+  "discovery_url": "https://login.microsoftonline.com/2c97db55-1010-4842-ae0c-40098c674087/.well-known/openid-configuration",
+  "tenant_id": "2c97db55-1010-4842-ae0c-40098c674087",
+  "audience": "api://ff6e758f-c5cd-432f-88d1-9a2bcdf3d4cd",
+  "region": "ca-central-1",
+  "role_arn": "arn:aws:iam::323225952044:role/agentcore-entra-inbound-323225952044-role",
+  "s3_bucket": "agentcore-entra-inbound-323225952044-ca-central-1"
+}

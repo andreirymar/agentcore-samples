@@ -33,6 +33,7 @@ Prerequisites:
 import argparse
 import json
 import os
+import socket
 import shutil
 import subprocess
 import sys
@@ -258,6 +259,7 @@ def upload_agent_to_s3() -> dict:
                 "uv",
                 "pip",
                 "install",
+                "--system-certs",
                 "--python-platform",
                 "aarch64-manylinux2014",
                 "--python-version",
@@ -361,7 +363,11 @@ def invoke_agent_with_oauth(runtime_arn: str):
     expects SigV4-signed requests. boto3's `invoke_agent_runtime` signs
     automatically; matches the pattern in 03-m2m-3lo/invoke.py.
     """
-    from oauth2_callback_server import wait_for_oauth2_server_to_be_ready
+    from oauth2_callback_server import (
+        OAUTH2_CALLBACK_SERVER_PORT,
+        store_user_id_in_oauth2_callback_server,
+        wait_for_oauth2_server_to_be_ready,
+    )
 
     session_id = str(uuid.uuid4())
     user_id = "entra-3lo-user"
@@ -372,14 +378,30 @@ def invoke_agent_with_oauth(runtime_arn: str):
         "AI agents securely, at scale. Provide a link to the created OneNote Notebook."
     )
 
-    # Start oauth2 callback server
-    oauth_proc = subprocess.Popen([sys.executable, "oauth2_callback_server.py", "--region", REGION])
+    def _is_port_listening(port: int) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.settimeout(0.5)
+            return sock.connect_ex(("127.0.0.1", port)) == 0
+
+    oauth_proc = None
+    if _is_port_listening(OAUTH2_CALLBACK_SERVER_PORT):
+        print(
+            f"  Reusing existing OAuth2 callback server on "
+            f"127.0.0.1:{OAUTH2_CALLBACK_SERVER_PORT}"
+        )
+    else:
+        print(f"  Starting OAuth2 callback server on 127.0.0.1:{OAUTH2_CALLBACK_SERVER_PORT}...")
+        oauth_proc = subprocess.Popen([sys.executable, "oauth2_callback_server.py", "--region", REGION])
 
     try:
         ok = wait_for_oauth2_server_to_be_ready()
         if not ok:
             print("  Failed to start OAuth2 callback server.")
             return
+
+        # Bind this runtime user to the local callback server so /oauth2/callback
+        # can complete the token flow when Entra redirects back.
+        store_user_id_in_oauth2_callback_server(user_id)
 
         # The agent calls @requires_access_token under the hood, which polls
         # AgentCore Identity for token completion after returning the auth
@@ -429,7 +451,8 @@ def invoke_agent_with_oauth(runtime_arn: str):
             "grant consent, then re-run with --test-only to continue."
         )
     finally:
-        oauth_proc.terminate()
+        if oauth_proc and oauth_proc.poll() is None:
+            oauth_proc.terminate()
 
 
 # ── Step 6: Cleanup ────────────────────────────────────────────────────────────

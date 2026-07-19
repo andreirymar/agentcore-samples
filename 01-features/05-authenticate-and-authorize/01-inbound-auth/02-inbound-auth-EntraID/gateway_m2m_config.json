@@ -1,0 +1,12 @@
+{
+  "gateway_name": "entra-m2m-gateway-8838",
+  "gateway_id": "entra-m2m-gateway-8838-eiqjldwxpp",
+  "gateway_url": "https://entra-m2m-gateway-8838-eiqjldwxpp.gateway.bedrock-agentcore.ca-central-1.amazonaws.com/mcp",
+  "lambda_name": "entra-m2m-lambda-8838",
+  "lambda_arn": "arn:aws:lambda:ca-central-1:323225952044:function:entra-m2m-lambda-8838",
+  "lambda_role_name": "entra-m2m-lambda-role-8838",
+  "gateway_role_name": "entra-m2m-gateway-role-8838",
+  "target_ids": [
+    "DJ9TOTHIN4"
+  ]
+}

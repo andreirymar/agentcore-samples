@@ -20,11 +20,88 @@ The user authenticates against the Cognito User Pool, receives a JWT, exchanges 
 ## Run
 
 ```bash
-pip install -r requirements.txt
+cd 01-features/04-manage-context-of-your-agent/memory/05-security/02-cognito-federated-identity
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+export AWS_REGION=ca-central-1
 python runtime_memory_federated_identity_integration.py
 ```
 
 The script provisions the User Pool, the Identity Pool, the authenticated role, and the agent runtime; then signs in as two different users to verify per-user credential isolation.
+
+### Standalone Cognito smoke test
+
+If you want to verify Cognito connectivity without running the full runtime deployment, use the
+standalone smoke test after you have a User Pool, App Client, and Identity Pool.
+
+The `--user-pool-id`, `--client-id`, and `--identity-pool-id` must come from the same Cognito
+setup. If you mix a User Pool or App Client from another tutorial or environment, Cognito Identity
+returns `NotAuthorizedException: Token is not from a supported provider of this identity pool`.
+
+For resources created by this sample, the test users are:
+
+- `testuser1` / `MyPassword123!`
+- `testuser2` / `MyPassword456!`
+
+```bash
+export AWS_REGION=ca-central-1
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
+python test_cognito_connectivity.py \
+	--user-pool-id <user-pool-id> \
+	--client-id <app-client-id> \
+	--identity-pool-id <identity-pool-id>
+```
+
+Expected output:
+
+- `User Pool auth OK`
+- `Identity Pool get_id OK: ...`
+- `Federated credentials OK`
+
+### Troubleshooting: SSL certificate verify failed
+
+If you see an error like `CERTIFICATE_VERIFY_FAILED` when calling IAM endpoints, your environment likely uses a proxy or custom root CA.
+
+1. Install project dependencies from this folder first:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+2. If your organization provides a custom root certificate, configure boto3/requests to trust it:
+
+```bash
+export AWS_CA_BUNDLE="/path/to/corporate-root-ca.pem"
+export REQUESTS_CA_BUNDLE="/path/to/corporate-root-ca.pem"
+export AWS_REGION=ca-central-1
+```
+
+Optional: make this persistent for new terminal sessions:
+
+```bash
+cat >> ~/.zshrc <<'EOF'
+# AgentCore samples: trust local corporate CA bundle when present
+if [ -f /path/to/corporate-root-ca.pem ]; then
+	export AWS_CA_BUNDLE=/path/to/corporate-root-ca.pem
+	export REQUESTS_CA_BUNDLE=/path/to/corporate-root-ca.pem
+fi
+EOF
+source ~/.zshrc
+```
+
+3. Re-run the script:
+
+```bash
+python runtime_memory_federated_identity_integration.py
+```
+
+If you see a `uv` error like `Failed to fetch https://pypi.org/... UnknownIssuer` during the
+deployment packaging step, update to the latest version of this sample. The packaging command in
+this sample now uses `uv --system-certs` so `uv` trusts the system certificate store in corporate
+proxy environments.
 
 ## When to prefer this over IAM-scoped roles
 

@@ -257,6 +257,7 @@ def upload_agent_to_s3() -> dict:
                 "uv",
                 "pip",
                 "install",
+                "--system-certs",
                 "--python-platform",
                 "aarch64-manylinux2014",
                 "--python-version",

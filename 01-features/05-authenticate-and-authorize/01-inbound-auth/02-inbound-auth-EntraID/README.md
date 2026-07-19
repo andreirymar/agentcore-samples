@@ -130,6 +130,10 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 pip install -r requirements.txt
+
+# Use the corporate CA bundle when your network intercepts HTTPS traffic
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
+export REQUESTS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
 ```
 
 ## Configuration
@@ -159,6 +163,7 @@ export ENTRA_CLIENT_SECRET="your-client-secret"
 ### Tutorial 1: Inbound Auth for AgentCore runtime
 
 ```bash
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
 python entra_id_inbound_auth.py
 ```
 
@@ -194,6 +199,7 @@ Expected output:
 ### Tutorial 2: M2M Auth for AgentCore gateway
 
 ```bash
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
 python entra_gateway_m2m.py
 ```
 
@@ -209,15 +215,19 @@ Expected output:
 ### Tutorial 3: 3LO Auth Code Flow (OneNote)
 
 ```bash
-# Terminal 1: Start the OAuth2 callback server
-python oauth2_callback_server.py --region us-west-2
-
-# Terminal 2: Set up credential provider and deploy agent
+# Run deploy + first invoke.
+# This script starts the OAuth2 callback server automatically.
+export AWS_CA_BUNDLE=/tmp/aws-ca-bundle-netskope-full.pem
 python entra_gateway_auth_code.py
 ```
 
 After the agent returns an authorization URL, copy it into your browser, sign in with your
-Microsoft account, and grant consent. The callback server will bind the session automatically.
+Microsoft account, and grant consent. The callback server binds the user session automatically.
+
+If you already started `oauth2_callback_server.py` manually, the script reuses that server.
+
+Note: if your shell aliases `aws` to `aws --no-verify-ssl`, remove that alias before running
+AWS CLI checks so the CLI uses the same TLS verification path as boto3.
 
 After completing auth, re-invoke:
 ```bash
@@ -258,6 +268,20 @@ Use the full URI from App Registration > Expose an API.
 **Issue**: IAM role propagation or container image issue.
 **Solution**: Wait 30 seconds and retry. Ensure the execution role has `bedrock:InvokeModel`
 and the ECR managed container URI is accessible.
+
+### `[Errno 48] address already in use` on `127.0.0.1:9090`
+**Issue**: Another process is already listening on the callback server port.
+**Solution**: Reuse the running server or stop the old process before retrying:
+
+```bash
+lsof -nP -iTCP:9090 -sTCP:LISTEN
+kill <pid>
+```
+
+### Browser shows `Internal Server Error` after OAuth redirect
+**Issue**: Callback server hit an exception while completing OAuth session binding.
+**Solution**: Check the terminal output from `oauth2_callback_server.py` for the exact error,
+then re-run `python entra_gateway_auth_code.py` and retry consent.
 
 ## Clean Up
 
